@@ -1,0 +1,29 @@
+data:
+  mesh_file: usb_male.obj
+  domain_bounds: null
+  scale_factor: 1000
+  sampler_ratio: 0.3
+  sampler_std: 0.05
+  train_samples: 10000000
+  train_batch_size: 100000
+  train_resample_interval: -1
+  test_samples: 100000
+  test_batch_size: 10000
+  test_resample_interval: -1
+model: 
+  type: GridNet3D
+  num_grid_points: [5, 5, 5]
+  feature_size: 10
+  width_size: 100
+  interp_method: cubic2
+  out_size: 1
+  activation_fn: swish
+loss:
+  sdf_mse_weight: 1.0
+  eikonal_weight: -1
+  closest_point_weight: -1
+train:
+  learning_rate: 1e-3
+  num_epochs: 4000
+  save_interval: 100
+  plot_interval: 200
