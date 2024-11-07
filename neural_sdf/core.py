@@ -267,12 +267,11 @@ def evaluate_model(model: GridNet3D, model_name: str, out_dir: str, test_loader:
     # Accuracy:
     #  - MSE loss
     #  - Max SDF error
-    #  - Max SDF error percentage
 
     print(f"Evaluating model {model_name}...")
 
     # JIT the evaluation function
-    def value_and_grad_fn(model, x_samples):
+    def value_and_grad_fn(x_samples):
         return vmap(value_and_grad(model))(x_samples)
     jitted_value_and_grad_fn = jax.jit(value_and_grad_fn)
 
@@ -289,11 +288,13 @@ def evaluate_model(model: GridNet3D, model_name: str, out_dir: str, test_loader:
         # Get predictions
         # And record time taken
         # TODO: Check memory usage
-        tik = time.time()
-        pred_sdf_vals, grad_xs = jitted_value_and_grad_fn(model, x_batch)
+        tik = time.perf_counter()
+        pred_sdf_vals, grad_xs = jitted_value_and_grad_fn(x_batch)
         jax.block_until_ready(pred_sdf_vals)
         jax.block_until_ready(grad_xs)
-        total_inference_time += time.time() - tik
+        if i > 0:
+            # Skipping first batch to account for JIT time
+            total_inference_time += time.perf_counter() - tik
 
         # Calculate metrics
         mse_loss, max_sdf_err_batch, max_sdf_err_frac_batch = (
@@ -304,25 +305,24 @@ def evaluate_model(model: GridNet3D, model_name: str, out_dir: str, test_loader:
         max_sdf_error = max(max_sdf_error, max_sdf_err_batch)
         max_sdf_error_frac = max(max_sdf_error_frac, max_sdf_err_frac_batch)
     
-    avg_inference_time = total_inference_time / len(test_loader)
+    avg_inference_time = total_inference_time / (len(test_loader) - 1)
 
     # print and output metrics
     print(f"Model {model_name} evaluation metrics:")
     print(f"  - Avg inference time per {test_loader.batch_size} samples: {avg_inference_time}")
     print(f"  - Total MSE loss: {total_mse_loss}")
     print(f"  - Max SDF error: {max_sdf_error}")
-    print(f"  - Max SDF error percentage: {max_sdf_error_frac}")
 
     eval_results = {
         "model_name": model_name,
         "num_samples": test_loader.num_samples,
         "batch_size": test_loader.batch_size,
         "avg_inference_time": avg_inference_time,
-        "total_mse_loss": total_mse_loss,
-        "max_sdf_error": max_sdf_error,
-        "max_sdf_error_frac": max_sdf_error_frac,
+        "total_mse_loss": float(total_mse_loss),
+        "max_sdf_error": float(max_sdf_error),
     }
 
-    json.dump(eval_results, open(path.join(out_dir, f"{model_name}_eval_results.json"), "w"))
+    with open(path.join(out_dir, f"{model_name}_eval_results.json"), "w") as f:
+        json.dump(eval_results, f)
 
     return eval_results

@@ -15,7 +15,7 @@ model:
   num_grid_points: [5, 5, 5]
   feature_size: 10
   width_size: 100
-  interp_method: cubic2
+  interp_method: linear
   out_size: 1
   activation_fn: swish
 loss:
