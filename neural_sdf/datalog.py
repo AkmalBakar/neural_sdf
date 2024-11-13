@@ -22,7 +22,10 @@ def add_time_stamp(in_str: str):
     base_str, ext = path.splitext(in_str)
     return f"{base_str}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}"
 
-def load_config(config_path: str, default_config_path: str) -> Dict:
+def load_config(config_path: str, default_config_path: str = None) -> Dict:
+    if default_config_path is None:
+        default_config_path = get_default_config()
+
     # Load default configuration
     with open(default_config_path, 'r') as f:
         default_config = yaml.safe_load(f)
@@ -44,6 +47,11 @@ def load_config(config_path: str, default_config_path: str) -> Dict:
     final_config = update_dict(default_config, user_config)
     
     return final_config
+
+def default_config_path():
+    """Returns the path to the default configuration file."""
+    with resources.path('neural_sdf.configs', 'default.yaml') as config_path:
+        return str(config_path)
 
 def get_default_config():
     """Returns the path to the default configuration file."""

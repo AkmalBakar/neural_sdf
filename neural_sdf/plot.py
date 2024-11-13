@@ -151,3 +151,129 @@ def plot_sampling_density_heatmap(points, domain_bounds, slice_axis=2, slice_loc
     plt.tight_layout()
     
     return fig
+
+def plot_positional_encodings(model, domain_bounds, slice_axis=2, location=0, n_samples=100):
+    """Plot the positional encodings for a slice through the domain.
+    
+    Args:
+        model: The neural network model
+        domain_bounds: Domain bounds, shape (2, 3)
+        slice_axis: Axis perpendicular to the slice (0 for YZ, 1 for XZ, 2 for XY)
+        location: Location of the slice along slice_axis
+        n_samples: Number of points to sample along each axis
+    
+    Returns:
+        fig: matplotlib figure object
+    """
+    # Generate points for the slice
+    plot_pts, _ = generate_model_sdf_slice(
+        model, domain_bounds, slice_axis, location, n_samples
+    )
+    
+    # Get positional encodings for all points
+    pos_enc = vmap(vmap(model.get_pos_encoding))(plot_pts)
+    
+    # Create figure with subplots for each encoding dimension
+    n_encodings = pos_enc.shape[-2]
+    fig, axes = plt.subplots(n_encodings, 3, figsize=(15, 5*n_encodings))
+    
+    # Get the plotting axes
+    axes_list = [0, 1, 2]
+    axes_list.remove(slice_axis)
+    x_axis, y_axis = axes_list
+    
+    # Plot grid lines
+    grid_points = model.num_grid_points
+    for ax_row in axes:
+        for ax in ax_row:
+            # X grid lines
+            x_grid = jnp.linspace(domain_bounds[0, x_axis], domain_bounds[1, x_axis], grid_points[x_axis])
+            for x in x_grid:
+                ax.axvline(x=x, color='gray', linestyle=':', alpha=0.5)
+            # Y grid lines
+            y_grid = jnp.linspace(domain_bounds[0, y_axis], domain_bounds[1, y_axis], grid_points[y_axis])
+            for y in y_grid:
+                ax.axhline(y=y, color='gray', linestyle=':', alpha=0.5)
+    
+    # Plot each encoding
+    for i in range(n_encodings):
+        for j in range(3):  # For each spatial dimension
+            ax = axes[i, j]
+            im = ax.imshow(pos_enc[:, :, i, j].T,
+                          extent=[domain_bounds[0, x_axis], domain_bounds[1, x_axis],
+                                domain_bounds[0, y_axis], domain_bounds[1, y_axis]],
+                          origin='lower', aspect='auto')
+            plt.colorbar(im, ax=ax)
+            ax.set_title(f'Encoding {i+1}, Dim {j+1}')
+            ax.set_xlabel(['X', 'Y', 'Z'][x_axis])
+            ax.set_ylabel(['X', 'Y', 'Z'][y_axis])
+    
+    plt.tight_layout()
+    return fig
+
+def plot_feature_vectors(model, domain_bounds, slice_axis=2, location=0, n_samples=100):
+    """Plot the feature vectors for a slice through the domain.
+    
+    Args:
+        model: The neural network model
+        domain_bounds: Domain bounds, shape (2, 3)
+        slice_axis: Axis perpendicular to the slice (0 for YZ, 1 for XZ, 2 for XY)
+        location: Location of the slice along slice_axis
+        n_samples: Number of points to sample along each axis
+    
+    Returns:
+        fig: matplotlib figure object
+    """
+    # Generate points for the slice
+    plot_pts, _ = generate_model_sdf_slice(
+        model, domain_bounds, slice_axis, location, n_samples
+    )
+    
+    # Get feature vectors for all points
+    features = vmap(vmap(model.get_feature))(plot_pts)
+    
+    # Create figure with subplots for each feature dimension
+    n_features = features.shape[-1]
+    n_rows = (n_features + 2) // 3  # Ceiling division to determine number of rows
+    fig, axes = plt.subplots(n_rows, 3, figsize=(15, 5*n_rows))
+    if n_rows == 1:
+        axes = axes[None, :]  # Add dimension for consistent indexing
+    
+    # Get the plotting axes
+    axes_list = [0, 1, 2]
+    axes_list.remove(slice_axis)
+    x_axis, y_axis = axes_list
+    
+    # Plot grid lines and features
+    for i in range(n_features):
+        row, col = i // 3, i % 3
+        ax = axes[row, col]
+        
+        # Plot grid lines
+        grid_points = model.num_grid_points
+        x_grid = jnp.linspace(domain_bounds[0, x_axis], domain_bounds[1, x_axis], grid_points[x_axis])
+        y_grid = jnp.linspace(domain_bounds[0, y_axis], domain_bounds[1, y_axis], grid_points[y_axis])
+        
+        for x in x_grid:
+            ax.axvline(x=x, color='gray', linestyle=':', alpha=0.5)
+        for y in y_grid:
+            ax.axhline(y=y, color='gray', linestyle=':', alpha=0.5)
+        
+        # Plot feature
+        im = ax.imshow(features[:, :, i].T,
+                      extent=[domain_bounds[0, x_axis], domain_bounds[1, x_axis],
+                            domain_bounds[0, y_axis], domain_bounds[1, y_axis]],
+                      origin='lower', aspect='auto')
+        plt.colorbar(im, ax=ax)
+        ax.set_title(f'Feature {i+1}')
+        ax.set_xlabel(['X', 'Y', 'Z'][x_axis])
+        ax.set_ylabel(['X', 'Y', 'Z'][y_axis])
+    
+    # Remove empty subplots
+    for i in range(n_features, n_rows * 3):
+        row, col = i // 3, i % 3
+        fig.delaxes(axes[row, col])
+    
+    plt.tight_layout()
+    return fig
+
