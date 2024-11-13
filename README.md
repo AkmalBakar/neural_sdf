@@ -22,7 +22,7 @@ This project provides tools to approximate the signed distance field of closed t
 
 Clone the repository:
 ```
-git clone https://git.autodesk.com/bakara/neural_implicit_contact.git && cd neural_implicit_contact
+git clone https://github.com/AkmalBakar/neural_sdf.git && cd neural_sdf
 ```
 
 Setup the environment:
@@ -45,7 +45,7 @@ Config file:
 
 Optional arguments:
 - `--model_name`: Name for the model (default: derived from config filename)
-- `--output_dir`: Directory for outputs (default: neural_implicit_contact/experiment_outputs)
+- `--output_dir`: Directory for outputs (default: ./experiment_outputs)
 
 ### Configuration
 
@@ -73,7 +73,7 @@ train:
   plot_interval: 200    # Generate plots every N epochs
 ```
 
-See `neural_implicit_contact/configs/default.yaml` for all available options.
+See `./neural_sdf/configs/default.yaml` for all available options.
 
 ## GridNet3D
 
